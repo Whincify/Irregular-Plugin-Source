@@ -25,7 +25,7 @@ _________   _...._      |   |                   .--.   _..._
 
 Name: Irregular Plugin
 
-Description: A plugin containing various tools I believe are useful in developing, however they are pretty random. (If you are reading this enjoy my OCD code.)
+Description: A plugin containing various tools I believe are useful in developing, however they are pretty random.
 
 Writer: Whincify
 
@@ -57,12 +57,12 @@ ToolbarButton.ClickableWhenViewportHidden = true
 local Plugin = plugin:CreateDockWidgetPluginGui(
 	"Irregular Plugin",
 	DockWidgetPluginGuiInfo.new(
-		Enum.InitialDockState.Float, -- Window will be initialized in a floating state.
-		false,                        -- Window will be initially enabled.
-		false,                       -- Don't override the saved enabled/dock state.
-		170,                         -- Width of the floating window.
-		185,                         -- Height of the floating window.
-		165,                          -- Minimum Width
+		Enum.InitialDockState.Float,
+		false,
+		false,
+		170,
+		185,
+		165,
 		185
 	)                         
 )
