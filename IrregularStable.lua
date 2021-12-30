@@ -23,7 +23,7 @@ _________   _...._      |   |                   .--.   _..._
 '-----------'                '   .'|  '/\'. __//    |  |   |  |                     
                               `-'  `--'  `'---'     '--'   '--'                     
 
-Name: Irregular Plugin
+Name: Irregular Plugin Dev
 
 Description: A plugin containing various tools I believe are useful in developing, however they are pretty random.
 
@@ -31,13 +31,13 @@ Writer: Whincify
 
 Created: 12/29/2021
 
-Updated: 12/29/2021
+Updated: 12/30/2021
 
 ]]
 
 --//Services
 
-local ServerScriptService = game:GetService("ServerScriptService")
+local CoreGui = game:GetService("CoreGui")
 local ChangeHistoryService = game:GetService("ChangeHistoryService")
 local Selection = game:GetService("Selection")
 
@@ -46,6 +46,12 @@ local Selection = game:GetService("Selection")
 local anchorKey = "anchorSave"
 local anchorSave = plugin:GetSetting(anchorKey)
 local anchorActive = false
+
+local transparencyKey = "transparencySave"
+local transparencySave = plugin:GetSetting(transparencyKey)
+
+local thicknessKey = "thicknessSave"
+local thicknessSave = plugin:GetSetting(thicknessKey)
 
 --//Plugin
 
@@ -85,6 +91,8 @@ local CameraToPart = MainFrame["Camera-To-Part"]
 local DirectoryNumberer = MainFrame["Directory Numberer"]
 local GhostModel = MainFrame["Ghost Model"]
 local ModelWeld = MainFrame["Model Weld"]
+local TextureTransfer = MainFrame["Texture Transfer"]
+local CustomSelection = MainFrame["Custom Selection"]
 local Output = MainFrame.Output.ScrollingFrame
 local SampleText = Output.SampleText
 
@@ -148,7 +156,14 @@ function clearOutput()
 		end
 	end
 	local successMessage = SampleText:Clone()
-	successMessage.Text = "Cleared "..count.." messages from output. (auto-deleting in 5 seconds)"
+	local messagesText = "message"
+	if (count > 1) then
+		messagesText = "messages"
+	end
+	successMessage.Text = "Cleared "..count.." "..messagesText.." from output. (auto-deleting in 5 seconds)"
+	if (count == 0) then
+		successMessage.Text = "There are no messages to clear. (auto-deleting in 5 seconds)"
+	end
 	successMessage.TextColor3 = Grey
 	successMessage.Visible = true
 	successMessage.Parent = Output
@@ -156,7 +171,11 @@ function clearOutput()
 	repeat
 		wait(1)
 		timer = timer - 1
-		successMessage.Text = "Cleared "..count.." messages from output. (auto-deleting in "..timer.." seconds)"
+		if (count == 0) then
+			successMessage.Text = "There are no messages to clear. (auto-deleting in "..timer.." seconds)"
+		elseif (count > 0) then
+			successMessage.Text = "Cleared "..count.." "..messagesText.." from output. (auto-deleting in "..timer.." seconds)"
+		end
 	until (timer == 0)
 	successMessage:Destroy()
 end
@@ -234,17 +253,21 @@ function ghostCreate()
 	local success, err = pcall(function()
 		if #selectedObjects == 1 then
 			for i, object in pairs(selectedObjects) do
-				if (object:GetChildren()) and (#object:GetChildren() > 0) and (object:IsA("Model")) then
-					for _, child in pairs(object:GetDescendants()) do
-						if child:IsA("BasePart") or child:IsA("MeshPart") or child:IsA("UnionOperation") then
-							child.CanCollide = false
-							child.Transparency = 1
+				if (object:IsA("Model")) then
+					if (object:GetChildren()) and (#object:GetChildren() > 0) and (object:IsA("Model")) then
+						for _, child in pairs(object:GetDescendants()) do
+							if child:IsA("BasePart") or child:IsA("MeshPart") or child:IsA("UnionOperation") then
+								child.CanCollide = false
+								child.Transparency = 1
+							end
 						end
+						createOutput("Ghost Model","Ghosted "..tostring(#object:GetChildren()).." children of "..object.Name..".")
+						createWaypoint("Ghost Model","Ghosted "..tostring(#object:GetChildren()).." children of "..object.Name..".")
+					elseif (#object:GetChildren() == 0) then
+						createOutput("Ghost Model","Model must have children to ghost.",Orange)
 					end
-					createOutput("Ghost Model","Ghosted "..tostring(#object:GetChildren()).." children of "..object.Name..".")
-					createWaypoint("Ghost Model","Ghosted "..tostring(#object:GetChildren()).." children of "..object.Name..".")
-				elseif (#object:GetChildren() == 0) then
-					createOutput("Ghost Model","Model must have children to ghost.",Orange)
+				else
+					createOutput("Ghost Model","Ghost Model only works with model instances.",Orange)
 				end
 			end
 		elseif #selectedObjects == 0 then
@@ -263,17 +286,21 @@ function ghostRemove()
 	local success, err = pcall(function()
 		if #selectedObjects == 1 then
 			for i, object in pairs(selectedObjects) do
-				if (object:GetChildren()) and (#object:GetChildren() > 0) and (object:IsA("Model")) then
-					for _, child in pairs(object:GetDescendants()) do
-						if child:IsA("BasePart") or child:IsA("MeshPart") or child:IsA("UnionOperation") then
-							child.CanCollide = true
-							child.Transparency = 0
+				if (object:IsA("Model")) then
+					if (object:GetChildren()) and (#object:GetChildren() > 0) and (object:IsA("Model")) then
+						for _, child in pairs(object:GetDescendants()) do
+							if child:IsA("BasePart") or child:IsA("MeshPart") or child:IsA("UnionOperation") then
+								child.CanCollide = true
+								child.Transparency = 0
+							end
 						end
+						createOutput("Ghost Model","Ghosted "..tostring(#object:GetChildren()).." children of "..object.Name..".")
+						createWaypoint("Ghost Model","Ghosted "..tostring(#object:GetChildren()).." children of "..object.Name..".")
+					elseif (#object:GetChildren() == 0) then
+						createOutput("Ghost Model","Model must have children to ghost.",Orange)
 					end
-					createOutput("Ghost Model","Ghosted "..tostring(#object:GetChildren()).." children of "..object.Name..".")
-					createWaypoint("Ghost Model","Ghosted "..tostring(#object:GetChildren()).." children of "..object.Name..".")
-				elseif (#object:GetChildren() == 0) then
-					createOutput("Ghost Model","Model must have children to ghost.",Orange)
+				else
+					createOutput("Ghost Model","Ghost Model only works with model instances.",Orange)
 				end
 			end
 		elseif #selectedObjects == 0 then
@@ -290,7 +317,7 @@ end
 function weld()
 	local selectedObjects = Selection:Get()
 	local success, err = pcall(function()
-		if #selectedObjects > 0 then
+		if #selectedObjects == 1 then
 			for i, object in pairs(selectedObjects) do
 				if object:IsA("Model") then
 					if not object.PrimaryPart then
@@ -316,15 +343,91 @@ function weld()
 						createOutput("Model Weld","Successfully created "..tostring(WeldsCreated).." WeldConstraints for "..object.Name)
 						createWaypoint("Created "..tostring(WeldsCreated).." WeldConstraints for "..object.Name)
 					end
+				else
+					createOutput("Model Weld","Model Weld only works with model instances.",Orange)
 				end
 			end
-		else
+		elseif #selectedObjects == 0 then
 			createOutput("Model Weld","Please select a model.",Orange)
+		elseif #selectedObjects > 1 then
+			createOutput("Model Weld","Please select only one model at a time.",Orange)
 		end
 	end)
 	if not success and err then
 		createOutput("Model Weld","Model Weld encountered the following error: "..err,Red)
 	end
+end
+
+function transfer()
+	local selectedObjects = Selection:Get()
+	local success, err = pcall(function()
+		if #selectedObjects == 2 then
+			local hasTexture
+			local needsTexture
+			for _, object in pairs(selectedObjects) do
+				if ((object:FindFirstChildOfClass("Decal")) or (object:FindFirstChildOfClass("Texture"))) then
+					if (not hasTexture) then
+						hasTexture = object
+					elseif (hasTexture) then
+						createOutput("Texture Transfer","Both of the selected instances already have a texture or decal.",Orange)
+					end
+				else
+					if (not needsTexture) then
+						needsTexture = object
+					elseif (needsTexture) then
+						createOutput("Texture Transfer","Neither of the selected instances have textures or decals.",Orange)
+					end
+				end
+			end
+			if (hasTexture) and (needsTexture) then
+				local decalText = "decal"
+				local textureText = "texture"
+				local countDecal = 0
+				local countTexture = 0
+				for _, child in pairs(hasTexture:GetChildren()) do
+					if ((child:IsA("Decal")) or (child:IsA("Texture"))) then
+						child:Clone().Parent = needsTexture
+						if (child.ClassName == "Decal") then
+							countDecal = countDecal + 1
+						elseif (child.ClassName == "Texture") then
+							countTexture = countTexture + 1
+						end
+					end
+				end
+				if ((countDecal > 1) or (countDecal == 0)) then
+					decalText = "decals"
+				end
+				if ((countTexture > 1) or (countTexture == 0)) then
+					textureText = "textures"
+				end
+				createOutput("Texture Transfer","Successfully transfered "..countTexture.." "..textureText.." and "..countDecal.." "..decalText.." from "..hasTexture.Name.." to "..needsTexture.Name..".")
+			else
+				createOutput("Texture Transfer","Transfer failed, please read the previous outputs and try again.",Orange)
+			end
+		else
+			createOutput("Texture Transfer","Please only select 2 instances.",Orange)
+		end
+	end)
+	if not success and err then
+		createOutput("Texture Transfer","Texture Transfer encountered the following error: "..err,Red)
+	end
+end
+
+CoreGui:WaitForChild("DraggerUI").ChildAdded:Connect(function(child)
+	if ((child.Name == "HoverBox") or (child:IsA("SelectionBox"))) then
+		child.Transparency = tonumber(CustomSelection.Container.TransparencyBox.Text) or 0
+		child.LineThickness = tonumber(CustomSelection.Container.ThicknessBox.Text) or 0.15
+	end
+end)
+
+function updateSelection()
+	local Transparency = tonumber(CustomSelection.Container.TransparencyBox.Text) or 0
+	local Thickness = tonumber(CustomSelection.Container.ThicknessBox.Text) or 0.15
+
+	CoreGui:WaitForChild("MaterialFlipBox").Transparency = Transparency
+	CoreGui:WaitForChild("MaterialFlipBox").LineThickness = Thickness
+
+	createOutput("Custom Selection","Selection box settings have been updated to the following: Transparency: "..Transparency..", Thickness: "..Thickness)
 end
 
 AutoAnchor.Container.CheckBox.MouseButton1Click:Connect(function()
@@ -349,6 +452,81 @@ end)
 
 ModelWeld.Container.TextButton.MouseButton1Click:Connect(function()
 	weld()
+end)
+
+TextureTransfer.Container.TextButton.MouseButton1Click:Connect(function()
+	transfer()
+end)
+
+if ((transparencySave) or (thicknessSave)) then
+	createOutput("Custom Selection","Selection settings have been automatically updated from save.")
+end
+
+local oldTransparency = 0
+
+if (transparencySave) then
+	CustomSelection.Container.TransparencyBox.Text = transparencySave
+end
+
+CustomSelection.Container.TransparencyBox.MouseEnter:Connect(function()
+	CustomSelection.Container.TransparencyBox.Text = ""
+end)
+
+CustomSelection.Container.TransparencyBox.MouseLeave:Connect(function()
+	if (not tonumber(CustomSelection.Container.TransparencyBox.Text)) then
+		CustomSelection.Container.TransparencyBox.Text = oldTransparency
+	end
+end)
+
+CustomSelection.Container.TransparencyBox:GetPropertyChangedSignal("Text"):Connect(function(transparency)
+	transparency = CustomSelection.Container.TransparencyBox.Text
+	if ((tonumber(transparency) == oldTransparency) or (transparency == "") or (not transparency)) then
+		return
+	end
+	if (tonumber(transparency)) then
+		oldTransparency = transparency
+		plugin:SetSetting(transparencyKey, transparency)
+		updateSelection()
+	else
+		CustomSelection.Container.TransparencyBox.Text = oldTransparency
+		createOutput("Custom Selection",'Attempted to set transparency value to '..typeof(transparency)..', and the only accepted type is "number".',Orange)
+	end
+end)
+
+local oldThickness = 0.15
+
+if (thicknessSave) then
+	CustomSelection.Container.ThicknessBox.Text = thicknessSave
+end
+
+CustomSelection.Container.ThicknessBox.MouseEnter:Connect(function()
+	CustomSelection.Container.ThicknessBox.Text = ""
+end)
+
+CustomSelection.Container.ThicknessBox.MouseLeave:Connect(function()
+	if (not tonumber(CustomSelection.Container.ThicknessBox.Text)) then
+		CustomSelection.Container.ThicknessBox.Text = oldThickness
+	end
+end)
+
+CustomSelection.Container.ThicknessBox:GetPropertyChangedSignal("Text"):Connect(function(thickness)
+	thickness = CustomSelection.Container.ThicknessBox.Text
+	if ((tonumber(thickness) == oldThickness) or (thickness == "") or (not thickness)) then
+		return
+	end
+	if (tonumber(thickness)) then
+		oldThickness = thickness
+		plugin:SetSetting(thicknessKey, thickness)
+		updateSelection()
+	else
+		CustomSelection.Container.ThicknessBox.Text = oldThickness
+		createOutput("Custom Selection",'Attempted to set thickness value to '..typeof(thickness)..', and the only accepted type is "number".',Orange)
+	end
+end)
+
+CustomSelection.Container.TextButton.MouseButton1Click:Connect(function()
+	CustomSelection.Container.ThicknessBox.Text = 0.15
+	CustomSelection.Container.TransparencyBox.Text = 0
 end)
 
 OutputBar.TextButton.MouseButton1Click:Connect(function()
