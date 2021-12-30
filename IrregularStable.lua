@@ -35,6 +35,10 @@ Updated: 12/30/2021
 
 ]]
 
+if (not game:GetService("RunService"):IsEdit()) then
+	return
+end
+
 --//Services
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
