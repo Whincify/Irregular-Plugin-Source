@@ -23,7 +23,7 @@ _________   _...._      |   |                   .--.   _..._
 '-----------'                '   .'|  '/\'. __//    |  |   |  |                     
                               `-'  `--'  `'---'     '--'   '--'                     
 
-Name: Irregular Plugin Dev
+Name: Irregular Plugin
 
 Description: A plugin containing various tools I believe are useful in developing, however they are pretty random.
 
