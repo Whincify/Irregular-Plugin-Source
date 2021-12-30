@@ -57,8 +57,17 @@ local thicknessSave = plugin:GetSetting(thicknessKey)
 
 --//Plugin
 
-local Toolbar = plugin:CreateToolbar("Whincify's Plugins")
-local ToolbarButton = Toolbar:CreateButton("Irregular Plugin", "Contains various tools useful for developing.","rbxassetid://4458901886")
+local DevVersion = false
+local Toolbar
+local ToolbarButton
+
+if (DevVersion) then
+	Toolbar = plugin:CreateToolbar("Whincify's DEV Plugins")
+	ToolbarButton = Toolbar:CreateButton("Irregular Plugin DEV", "Contains various tools useful for developing.","rbxassetid://4458901886")
+else
+	Toolbar = plugin:CreateToolbar("Whincify's Plugins")
+	ToolbarButton = Toolbar:CreateButton("Irregular Plugin", "Contains various tools useful for developing.","rbxassetid://4458901886")
+end
 
 ToolbarButton.ClickableWhenViewportHidden = true
 
@@ -97,6 +106,7 @@ local TextureTransfer = MainFrame["Texture Transfer"]
 local CustomSelection = MainFrame["Custom Selection"]
 local ScriptRemover = MainFrame["Script Remover"]
 local GameOrganizer = MainFrame["Game Organizer"]
+local UnionColorer = MainFrame["Union Colorer"]
 local Output = MainFrame.Output.ScrollingFrame
 local SampleText = Output.SampleText
 
@@ -530,6 +540,51 @@ function organize()
 	end
 end
 
+function colorUnion()
+	local selectedObjects = Selection:Get()
+	local success, err = pcall(function()
+		if #selectedObjects > 0 then
+			local unionsColored = 0
+			local excludedParts = 0
+			local coloredPart
+			for i, object in pairs(selectedObjects) do
+				if (object:IsA("Part")) then
+					coloredPart = object
+				end
+			end
+			if (coloredPart) then
+				local unionText = "union"
+				if ((#selectedObjects - 1) > 1) then
+					unionText = "unions"
+				end
+				for _, selected in pairs(selectedObjects) do
+					if ((selected:IsA("UnionOperation")) and (selected ~= coloredPart)) then
+						selected.UsePartColor = true
+						selected.Color = coloredPart.Color
+						unionsColored = unionsColored + 1
+					elseif ((not selected:IsA("UnionOperation")) and (selected ~= coloredPart)) then
+						excludedParts = excludedParts + 1
+					end
+				end
+				if (excludedParts > 0) then
+					createOutput("Union Colorer","Recolored "..unionsColored.." "..unionText..". "..excludedParts.." instances were also selected but weren't unions.")
+					createWaypoint("Union Colorer","Recolored "..unionsColored.." "..unionText..". "..excludedParts.." instances were also selected but weren't unions.")
+				else
+					createOutput("Union Colorer","Recolored "..unionsColored.." "..unionText..".")
+					createWaypoint("Union Colorer","Recolored "..unionsColored.." "..unionText..".")
+				end
+			elseif (not coloredPart) then
+				createOutput("Union Colorer","Please include a part instance in selection to copy color from.",Orange)
+			end
+		elseif #selectedObjects == 0 then
+			createOutput("Union Colorer","Please select at least one union to color, as well as a part to copy the color of.",Orange)
+		end
+	end)
+	if not success and err then
+		createOutput("Union Colorer","Union Colorer encountered the following error: "..err,Red)
+	end
+end
+
 AutoAnchor.Container.CheckBox.MouseButton1Click:Connect(function()
 	autoAnchor()
 end)
@@ -635,6 +690,10 @@ end)
 
 GameOrganizer.Container.TextButton.MouseButton1Click:Connect(function()
 	organize()
+end)
+
+UnionColorer.Container.TextButton.MouseButton1Click:Connect(function()
+	colorUnion()
 end)
 
 OutputBar.TextButton.MouseButton1Click:Connect(function()
