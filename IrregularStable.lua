@@ -37,6 +37,8 @@ Updated: 12/30/2021
 
 --//Services
 
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local ServerScriptService = game:GetService("ServerScriptService")
 local CoreGui = game:GetService("CoreGui")
 local ChangeHistoryService = game:GetService("ChangeHistoryService")
 local Selection = game:GetService("Selection")
@@ -93,6 +95,8 @@ local GhostModel = MainFrame["Ghost Model"]
 local ModelWeld = MainFrame["Model Weld"]
 local TextureTransfer = MainFrame["Texture Transfer"]
 local CustomSelection = MainFrame["Custom Selection"]
+local ScriptRemover = MainFrame["Script Remover"]
+local GameOrganizer = MainFrame["Game Organizer"]
 local Output = MainFrame.Output.ScrollingFrame
 local SampleText = Output.SampleText
 
@@ -401,6 +405,7 @@ function transfer()
 					textureText = "textures"
 				end
 				createOutput("Texture Transfer","Successfully transfered "..countTexture.." "..textureText.." and "..countDecal.." "..decalText.." from "..hasTexture.Name.." to "..needsTexture.Name..".")
+				createWaypoint("Successfully transfered "..countTexture.." "..textureText.." and "..countDecal.." "..decalText.." from "..hasTexture.Name.." to "..needsTexture.Name..".")
 			else
 				createOutput("Texture Transfer","Transfer failed, please read the previous outputs and try again.",Orange)
 			end
@@ -428,6 +433,101 @@ function updateSelection()
 	CoreGui:WaitForChild("MaterialFlipBox").LineThickness = Thickness
 
 	createOutput("Custom Selection","Selection box settings have been updated to the following: Transparency: "..Transparency..", Thickness: "..Thickness)
+end
+
+function removeScripts()
+	local selectedObjects = Selection:Get()
+	local success, err = pcall(function()
+		if #selectedObjects > 0 then
+			local scriptsRemoved = 0
+			for i, object in pairs(selectedObjects) do
+				for _, child in pairs(object:GetChildren()) do
+					if ((child:IsA("Script")) or (child:IsA("ModuleScript")) or (child:IsA("LocalScript"))) then
+						scriptsRemoved = scriptsRemoved + 1
+						child:Destroy()
+					end
+				end
+			end
+			if (scriptsRemoved == 0) then
+				local instanceText = "instance"
+				if (#selectedObjects > 1) then
+					instanceText = "instances"
+				end
+				createOutput("Script Remover","Searched "..#selectedObjects.." "..instanceText.." and found 0 scripts to remove.")
+			elseif (scriptsRemoved > 0) then
+				local scriptsText = "script"
+				if (scriptsRemoved > 1) then
+					scriptsText = "scripts"
+				end
+				createOutput("Script Remover","Removed "..scriptsRemoved.." "..scriptsText.." from "..#selectedObjects.." instances.")
+				createWaypoint("Script Remover","Removed "..scriptsRemoved.." "..scriptsText.." from "..#selectedObjects.." instances.")
+			end
+		elseif #selectedObjects == 0 then
+			createOutput("Script Remover","Please select instances to check and remove scripts from.",Orange)
+		end
+	end)
+	if not success and err then
+		createOutput("Script Remover","Script Remover encountered the following error: "..err,Red)
+	end
+end
+
+local PartsFolder = "Part Folder"
+local MeshsFolder = "Mesh Folder"
+local ScriptsFolder = "Script Folder"
+local LocalScriptsFolder = "LocalScript Folder"
+local ModuleScriptsFolder = "ModuleScript Folder"
+local UnionsFolder = "Union Folder"
+
+function organize()
+	local assetsOrganized = 0
+	for _, child in pairs(workspace:GetChildren(),ReplicatedStorage:GetChildren(),ServerScriptService:GetChildren()) do
+		if (child:IsA("Part")) and (child.Name == "Part") then
+			if (not workspace:FindFirstChild(PartsFolder)) then
+				Instance.new("Folder",workspace).Name = PartsFolder
+			end
+			child.Parent = workspace[PartsFolder]
+			assetsOrganized = assetsOrganized + 1
+		elseif (child:IsA("MeshPart")) and (child.Name == "MeshPart") then
+			if (not workspace:FindFirstChild(MeshsFolder)) then
+				Instance.new("Folder",workspace).Name = MeshsFolder
+			end
+			child.Parent = workspace[MeshsFolder]
+			assetsOrganized = assetsOrganized + 1
+		elseif (child:IsA("Script")) and (child.Name == "Script") then
+			if (not ServerScriptService:FindFirstChild(ScriptsFolder)) then
+				Instance.new("Folder",ServerScriptService).Name = ScriptsFolder
+			end
+			child.Parent = ServerScriptService[ScriptsFolder]
+			assetsOrganized = assetsOrganized + 1
+		elseif (child:IsA("LocalScript")) and (child.Name == "LocalScript") then
+			if (not workspace:FindFirstChild(LocalScriptsFolder)) then
+				Instance.new("Folder",workspace).Name = LocalScriptsFolder
+			end
+			child.Parent = workspace[LocalScriptsFolder]
+			assetsOrganized = assetsOrganized + 1
+		elseif (child:IsA("ModuleScript")) and (child.Name == "ModuleScript") then
+			if (not ReplicatedStorage:FindFirstChild(ModuleScriptsFolder)) then
+				Instance.new("Folder",ReplicatedStorage).Name = ModuleScriptsFolder
+			end
+			child.Parent = ReplicatedStorage[ModuleScriptsFolder]
+			assetsOrganized = assetsOrganized + 1
+		elseif (child:IsA("UnionOperation")) and ((child.Name == "UnionOperation") or (child.Name == "Union")) then
+			if (not workspace:FindFirstChild(UnionsFolder)) then
+				Instance.new("Folder",workspace).Name = UnionsFolder
+			end
+			child.Parent = workspace[UnionsFolder]
+			assetsOrganized = assetsOrganized + 1
+		end
+	end
+	if (assetsOrganized > 0) then
+		local assetsText = "asset"
+		if (assetsOrganized > 1) then
+			assetsText = "assets"
+		end
+		createOutput("Game Organizer",assetsText.." instances were organized.",Orange)
+	elseif (assetsOrganized == 0) then
+		createOutput("Game Organizer","There were no instances found to organize.",Orange)
+	end
 end
 
 AutoAnchor.Container.CheckBox.MouseButton1Click:Connect(function()
@@ -527,6 +627,14 @@ end)
 CustomSelection.Container.TextButton.MouseButton1Click:Connect(function()
 	CustomSelection.Container.ThicknessBox.Text = 0.15
 	CustomSelection.Container.TransparencyBox.Text = 0
+end)
+
+ScriptRemover.Container.TextButton.MouseButton1Click:Connect(function()
+	removeScripts()
+end)
+
+GameOrganizer.Container.TextButton.MouseButton1Click:Connect(function()
+	organize()
 end)
 
 OutputBar.TextButton.MouseButton1Click:Connect(function()
